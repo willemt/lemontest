@@ -1,26 +1,25 @@
+.. code-block::
+   :class: ignore
+
+   🍋test /ˈlɛmən tɛst/ Noun.
+    1. A test which appears to test a feature, but in fact does not test that feature at all. 
+    [us. I reviewed that pull request and found one 🍋test that doesn't test right.]
+
 What?
 =====
 
-A unittest runner for detecting 🍋 tests.
+A unittest runner for detecting 🍋tests.
 
 Why?
 ====
 
-.. code-block:: bash
-   :class: ignore
-
-   🍋 test /ˈlɛmən tɛst/ Noun.
-    1. A test which appears to test a feature, but in fact does not test that feature at all. 
-    [us. I reviewed that pull request and found one 🍋 test that doesn't test right.]
-
-
 Good development practice dictates that new features should be accompanied with new tests. Good tests can identify regressions and accidental removal of features.
 
-A 🍋 test, is a test which appears to test a feature, but in fact does not test that feature at all. 🍋 tests can be considered worse than not having a test at all, because they give the false assumption that your new feature is tested. If a regression occurs, 🍋 tests won't let you know. The existence of 🍋 tests can also identify situations when the feature does not meet your requirements. Detecting 🍋 tests helps ensure code quality and feature delivery.
+A 🍋test, is a test which appears to test a feature, but in fact does not test that feature at all. 🍋tests can be considered worse than not having a test at all, because they give the false assumption that your new feature is tested. If a regression occurs, 🍋tests won't let you know. The detection of 🍋tests can identify situations when the feature does not meet your requirements. Detecting 🍋tests helps ensure code quality and feature delivery.
 
-This library identifies 🍋 tests. This is done by examining two git branches: the feature, and the merge destination. The algorithm separates business logic from testing code, and then uses Git to revert business logic to it's previous state (the same as the merge destination). A test suite is then run on the reverted business logic with the new tests. Any tests that are successful are marked as 🍋 tests.
+This library identifies 🍋tests. This is done by examining two git branches: the feature, and the merge destination. The algorithm separates business logic from testing code, and then uses Git to revert business logic to it's previous state (the same as the merge destination). A test suite is then run on the reverted business logic with the new tests. Any tests that are successful are marked as 🍋tests.
 
-Testing for 🍋 tests is a form of mutation testing. The mutation operation in this case is reverting the business logic to it's previous state before the feature was written.
+Testing for 🍋tests is a form of mutation testing. The mutation operation in this case is reverting the business logic to it's previous state before the feature was written.
 
 Quickstart
 ==========
