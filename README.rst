@@ -28,7 +28,7 @@ Quickstart
    :class: ignore
 
    pip install lemontest
-   manage.py test --testrunner=lemontest.DjangoLemonTestRunner --to-branch=master --from-branch=feature/123
+   manage.py test --testrunner=lemontest.djangorunner.DjangoLemonTestRunner --to-branch=master --from-branch=feature/123
 
 It must be a git repository.
 ----------------------------
