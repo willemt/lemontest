@@ -13,7 +13,7 @@ def long_description():
 
 setup(
     name='lemontest',
-    version='0.1.0',
+    version='0.2.0',
     description='A unittest runner for detecting lemon tests',
     long_description=long_description(),
     url='https://github.com/willemt/lemontest',

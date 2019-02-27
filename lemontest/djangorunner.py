@@ -8,10 +8,17 @@ import lemontest
 
 
 class DjangoLemonTestRunner(DiscoverRunner):
-    def __init__(self, from_branch=None, to_branch=None, *args, **kwargs):
+    def __init__(self, from_branch=None, to_branch=None, repo_path=None, *args, **kwargs):
         self.to_branch = to_branch
         self.from_branch = from_branch
-        self.repo = git.Repo(os.getcwd())
+
+        repo_path = repo_path or os.getcwd()
+
+        try:
+            self.repo = git.Repo(repo_path or os.getcwd())
+        except git.exc.InvalidGitRepositoryError:
+            self.repo = git.Repo(os.path.join(repo_path, '..'))
+
         self.test_runner = functools.partial(lemontest.LemonTestRunner,
                                              repo=self.repo,
                                              from_branch=self.from_branch,
@@ -28,6 +35,10 @@ class DjangoLemonTestRunner(DiscoverRunner):
         parser.add_argument(
             '-T', '--to-branch', action='store', default=None,
             help='The target branch to merge to',
+        )
+        parser.add_argument(
+            '-R', '--repo-path', action='store', default=None,
+            help='Path that the git repository is in',
         )
         parser.add_argument(
             '-Y', '--fail-if-no-tests-executed', action='store', default=None,
