@@ -43,7 +43,7 @@ Travis conveniently provides environment variables we can use.
    :class: ignore
 
    pip install lemontest
-   manage.py test --testrunner=lemontest.djangorunner.DjangoLemonTestRunner --to-branch=$TRAVIS_COMMIT --from-branch=$TRAVIS_PULL_REQUEST_SHA
+   manage.py test --testrunner=lemontest.djangorunner.DjangoLemonTestRunner --to-branch=$TRAVIS_BRANCH --from-branch=$TRAVIS_PULL_REQUEST_SHA
 
 Algorithm
 =========
