@@ -34,6 +34,17 @@ It must be a git repository.
 ----------------------------
 Lemontest needs a git repository to be able to revert business logic.
 
+Travis CI
+---------
+
+Travis conveniently provides environment variables we can use.
+
+.. code-block:: bash
+   :class: ignore
+
+   pip install lemontest
+   manage.py test --testrunner=lemontest.djangorunner.DjangoLemonTestRunner --to-branch=$TRAVIS_COMMIT --from-branch=$TRAVIS_PULL_REQUEST_SHA
+
 Algorithm
 =========
 
