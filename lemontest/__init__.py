@@ -164,6 +164,8 @@ class LemonTestRunner(unittest.TextTestRunner):
         new_suite = filter_out_tests(suite, self.expected_tests)
 
         # Diagnostics
+        self.stream.writeln('To commit:\n\t{}'.format(str(self.repo.commit(self.to_branch))))
+        self.stream.writeln('From commit:\n\t{}'.format(str(self.repo.commit(self.from_branch))))
         self.stream.writeln('Changed files:\n\t{}'.format('\n\t'.join(paths)))
         self.stream.writeln('Relevant tests:\n\t{}'.format(
             '\n\t'.join(map(str, self.expected_tests))))
