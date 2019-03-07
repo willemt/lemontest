@@ -35,6 +35,8 @@ def file_lines_that_changed(head, origin):
 
     diff_index = origin.diff(head)
 
+    # FIXME: need to handle creation of new files
+
     for diff_item in diff_index.iter_change_type('M'):
         a = diff_item.a_blob.data_stream.read().decode('utf-8')
         b = diff_item.b_blob.data_stream.read().decode('utf-8')
@@ -142,9 +144,13 @@ class LemonTestRunner(unittest.TextTestRunner):
         super(LemonTestRunner, self).__init__(**kwargs)
 
     def run(self, suite):
-        # Step 1. expected tests
+        self.stream.writeln('Running Lemon test')
+        self.stream.writeln('-' * 70)
+
+        # Step 1. relevant tests
         test_paths = suite2paths(suite)
-        self.expected_tests = get_changed_tests(self.repo, self.from_branch, self.to_branch, test_paths)
+        self.expected_tests = get_changed_tests(
+            self.repo, self.from_branch, self.to_branch, test_paths)
 
         # Step 2. get business logic files
         paths = paths_that_changed(self.repo, self.from_branch, self.to_branch)
@@ -156,6 +162,12 @@ class LemonTestRunner(unittest.TextTestRunner):
 
         # Step 4. run tests that changed
         new_suite = filter_out_tests(suite, self.expected_tests)
+
+        # Diagnostics
+        self.stream.writeln('Changed files:\n\t{}'.format('\n\t'.join(paths)))
+        self.stream.writeln('Relevant tests:\n\t{}'.format(
+            '\n\t'.join(map(str, self.expected_tests))))
+        self.stream.writeln('Business logic:\n\t{}'.format('\n\t'.join(business_logic_files)))
 
         # TODO: if no tests ran then raise an error (this should be optional via command line option)
         result = super(LemonTestRunner, self).run(new_suite)
@@ -207,7 +219,11 @@ def filter_out_tests(suite, expected_tests):
     return filtered_suite
 
 
-Test = collections.namedtuple('Test', ['path', 'class_name', 'method_name'])
+class Test(collections.namedtuple('Test', ['path', 'class_name', 'method_name'])):
+    __slots__ = ()
+
+    def __str__(self):
+        return '{}:{}.{}'.format(self.path, self.class_name, self.method_name)
 
 
 def paths_that_changed(repo, from_branch, to_branch):
@@ -218,7 +234,10 @@ def get_changed_tests(repo, from_branch, to_branch, test_paths):
     expected_tests = set()
     asts_by_path = {}
 
-    for path, line_no in file_lines_that_changed(repo.commit(from_branch), repo.commit(to_branch)):
+    head = repo.commit(from_branch)
+    origin = repo.commit(to_branch)
+
+    for path, line_no in file_lines_that_changed(head, origin):
         if path.endswith('.py') and path in test_paths:
             try:
                 module_ast = asts_by_path[path]

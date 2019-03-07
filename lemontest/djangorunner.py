@@ -45,11 +45,5 @@ class DjangoLemonTestRunner(DiscoverRunner):
             help='Fail if no tests were executed',
         )
 
-    def setup_test_environment(self, **kwargs):
-        super(DjangoLemonTestRunner, self).setup_test_environment(**kwargs)
-
-    def teardown_test_environment(self, **kwargs):
-        super(DjangoLemonTestRunner, self).teardown_test_environment(**kwargs)
-
     def suite_result(self, suite, result, **kwargs):
         return len(result.failures) + len(result.errors)
