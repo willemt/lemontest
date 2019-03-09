@@ -141,6 +141,11 @@ class LemonTestRunner(unittest.TextTestRunner):
         self.repo = repo
         self.to_branch = to_branch
         self.from_branch = from_branch
+
+        # FIXME: should respect --top-level-directory
+        # Change directory so that git path's match test runner's path
+        os.chdir(self.repo.working_tree_dir)
+
         super(LemonTestRunner, self).__init__(**kwargs)
 
     def run(self, suite):
@@ -154,7 +159,7 @@ class LemonTestRunner(unittest.TextTestRunner):
 
         # Step 2. get business logic files
         paths = paths_that_changed(self.repo, self.from_branch, self.to_branch)
-        business_logic_files = paths - test_paths
+        business_logic_files = sorted(paths - test_paths)
 
         # Step 3. revert business logic code
         for path in business_logic_files:
@@ -168,7 +173,7 @@ class LemonTestRunner(unittest.TextTestRunner):
         self.stream.writeln('From commit:\n\t{}'.format(str(self.repo.commit(self.from_branch))))
         self.stream.writeln('Changed files:\n\t{}'.format('\n\t'.join(paths)))
         self.stream.writeln('Relevant tests:\n\t{}'.format(
-            '\n\t'.join(map(str, self.expected_tests))))
+            '\n\t'.join(sorted(map(str, self.expected_tests)))))
         self.stream.writeln('Business logic:\n\t{}'.format('\n\t'.join(business_logic_files)))
 
         # TODO: if no tests ran then raise an error (this should be optional via command line option)
