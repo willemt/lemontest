@@ -4,6 +4,7 @@ import ast
 import collections
 import difflib
 import inspect
+import itertools
 import os
 import unittest
 
@@ -169,17 +170,27 @@ class LemonTestRunner(unittest.TextTestRunner):
         new_suite = filter_out_tests(suite, self.expected_tests)
 
         # Diagnostics
-        self.stream.writeln('To commit:\n\t{}'.format(str(self.repo.commit(self.to_branch))))
-        self.stream.writeln('From commit:\n\t{}'.format(str(self.repo.commit(self.from_branch))))
-        self.stream.writeln('Changed files:\n\t{}'.format('\n\t'.join(paths)))
-        self.stream.writeln('Relevant tests:\n\t{}'.format(
-            '\n\t'.join(sorted(map(str, self.expected_tests)))))
-        self.stream.writeln('Business logic:\n\t{}'.format('\n\t'.join(business_logic_files)))
+        self.stream.writeln('To commit:\n  {}'.format(str(self.repo.commit(self.to_branch))))
+        self.stream.writeln('')
+        self.stream.writeln('From commit:\n  {}'.format(str(self.repo.commit(self.from_branch))))
+        self.stream.writeln('')
+        self.stream.writeln('Changed files:\n  {}'.format('\n  '.join(paths)))
+        self.stream.writeln('')
+        self.stream.writeln('Relevant tests:')
+        sorted_tests = sorted(self.expected_tests, key=lambda x: (x.path, x.class_name, x.method_name))
+        for path, tests in itertools.groupby(sorted_tests, key=lambda x: x.path):
+            self.stream.writeln('  {}:'.format(path))
+            for class_name, _tests in itertools.groupby(tests, key=lambda x: x.class_name):
+                self.stream.writeln('    {}:'.format(class_name))
+                for test in _tests:
+                    self.stream.writeln('      {}'.format(test.method_name))
+        self.stream.writeln('')
+        self.stream.writeln('Business logic:\n  {}'.format('\n  '.join(business_logic_files)))
 
         # TODO: if no tests ran then raise an error (this should be optional via command line option)
         result = super(LemonTestRunner, self).run(new_suite)
         if not result.wasSuccessful():
-            self.stream.write("\n")
+            self.stream.writeln('')
             self.stream.write("🍋 test(s) detected:\n")
             self.stream.write("""
     This test runner has detected 🍋 test(s). The test runner has reverted
