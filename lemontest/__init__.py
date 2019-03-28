@@ -160,6 +160,7 @@ class LemonTestRunner(unittest.TextTestRunner):
 
         # Step 2. get business logic files
         paths = paths_that_changed(self.repo, self.from_branch, self.to_branch)
+        paths = set(filter(lambda x: x.endswith('.py'), paths))
         business_logic_files = sorted(paths - test_paths)
 
         # Step 3. revert business logic code
@@ -167,17 +168,20 @@ class LemonTestRunner(unittest.TextTestRunner):
             self.repo.git.checkout(self.to_branch, path)
 
         # Step 4. run tests that changed
-        new_suite = filter_out_tests(suite, self.expected_tests)
+        new_suite, inscope_tests = filter_out_tests(suite, self.expected_tests)
 
         # Diagnostics
         self.stream.writeln('To commit:\n  {}'.format(str(self.repo.commit(self.to_branch))))
         self.stream.writeln('')
+
         self.stream.writeln('From commit:\n  {}'.format(str(self.repo.commit(self.from_branch))))
         self.stream.writeln('')
+
         self.stream.writeln('Changed files:\n  {}'.format('\n  '.join(paths)))
         self.stream.writeln('')
+
         self.stream.writeln('Relevant tests:')
-        sorted_tests = sorted(self.expected_tests, key=lambda x: (x.path, x.class_name, x.method_name))
+        sorted_tests = sorted(inscope_tests, key=lambda x: (x.path, x.class_name, x.method_name))
         for path, tests in itertools.groupby(sorted_tests, key=lambda x: x.path):
             self.stream.writeln('  {}:'.format(path))
             for class_name, _tests in itertools.groupby(tests, key=lambda x: x.class_name):
@@ -185,12 +189,13 @@ class LemonTestRunner(unittest.TextTestRunner):
                 for test in _tests:
                     self.stream.writeln('      {}'.format(test.method_name))
         self.stream.writeln('')
+
         self.stream.writeln('Business logic:\n  {}'.format('\n  '.join(business_logic_files)))
+        self.stream.writeln('')
 
         # TODO: if no tests ran then raise an error (this should be optional via command line option)
         result = super(LemonTestRunner, self).run(new_suite)
         if not result.wasSuccessful():
-            self.stream.writeln('')
             self.stream.write("🍋 test(s) detected:\n")
             self.stream.write("""
     This test runner has detected 🍋 test(s). The test runner has reverted
@@ -223,18 +228,23 @@ def filter_out_tests(suite, expected_tests):
     """
     suite_class = type(suite)
     filtered_suite = suite_class()
+    inscope_tests = set()
 
     for test in suite:
         if isinstance(test, suite_class):
-            filtered_suite.addTests(filter_out_tests(test, expected_tests))
+            suite, _inscope_tests = filter_out_tests(test, expected_tests)
+            inscope_tests = inscope_tests | _inscope_tests
+            filtered_suite.addTests(suite)
         else:
             test_fn_name = getattr(test, '_testMethodName', str(test))
             class_name = test.__class__.__name__
             source_file = inspect.getsourcefile(test.__class__).replace(os.getcwd() + '/', '')
-            if Test(source_file, class_name, test_fn_name) in expected_tests:
+            test_test = Test(source_file, class_name, test_fn_name)
+            if test_test in expected_tests:
+                inscope_tests.add(test_test)
                 filtered_suite.addTest(test)
 
-    return filtered_suite
+    return filtered_suite, inscope_tests
 
 
 class Test(collections.namedtuple('Test', ['path', 'class_name', 'method_name'])):
