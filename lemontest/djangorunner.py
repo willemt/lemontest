@@ -19,6 +19,9 @@ class DjangoLemonTestRunner(DiscoverRunner):
         except git.exc.InvalidGitRepositoryError:
             self.repo = git.Repo(os.path.join(repo_path, '..'))
 
+        # Checkout the branch so that the tests are picked up
+        self.repo.git.checkout(self.from_branch)
+
         self.test_runner = functools.partial(lemontest.LemonTestRunner,
                                              repo=self.repo,
                                              from_branch=self.from_branch,

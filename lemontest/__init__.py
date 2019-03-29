@@ -7,6 +7,7 @@ import inspect
 import itertools
 import os
 import unittest
+import uuid
 
 
 __all__ = [
@@ -142,6 +143,7 @@ class LemonTestRunner(unittest.TextTestRunner):
         self.repo = repo
         self.to_branch = to_branch
         self.from_branch = from_branch
+        self.original_from_branch = from_branch
 
         # FIXME: should respect --top-level-directory
         # Change directory so that git path's match test runner's path
@@ -152,6 +154,27 @@ class LemonTestRunner(unittest.TextTestRunner):
     def run(self, suite):
         self.stream.writeln('Running Lemon test')
         self.stream.writeln('-' * 70)
+
+        to_commit = self.repo.commit(self.to_branch)
+
+        # Step 0. create "from"^
+        # We need to merge the "to" branch into the "from" branch to ensure
+        # the diff works properly and scopes the correct tests
+        self.repo.git.checkout(self.from_branch)
+        new_branch = self.repo.create_head(str(uuid.uuid4()), self.from_branch)
+        new_branch.checkout()
+
+        # merge "to" into "from"^
+        merge_base = self.repo.merge_base(new_branch, to_commit)
+        self.repo.index.merge_tree(to_commit, base=merge_base)
+        from_commit = self.repo.index.commit(
+            "Merge",
+            parent_commits=(new_branch.commit, to_commit))
+        self.repo.git.checkout(from_commit)
+        # For some reason there's still some dirty files
+        self.repo.head.reset(index=True, working_tree=True)
+        # Use this as our NEW "from" branch
+        self.from_branch = str(from_commit)
 
         # Step 1. relevant tests
         test_paths = suite2paths(suite)
@@ -170,11 +193,14 @@ class LemonTestRunner(unittest.TextTestRunner):
         # Step 4. run tests that changed
         new_suite, inscope_tests = filter_out_tests(suite, self.expected_tests)
 
+        # Step 5. remove new branch (clean up)
+        # TODO
+
         # Diagnostics
         self.stream.writeln('To commit:\n  {}'.format(str(self.repo.commit(self.to_branch))))
         self.stream.writeln('')
 
-        self.stream.writeln('From commit:\n  {}'.format(str(self.repo.commit(self.from_branch))))
+        self.stream.writeln('From commit:\n  {}'.format(str(self.repo.commit(self.original_from_branch))))
         self.stream.writeln('')
 
         self.stream.writeln('Changed files:\n  {}'.format('\n  '.join(paths)))
