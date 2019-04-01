@@ -5,9 +5,15 @@ import collections
 import difflib
 import inspect
 import itertools
+import logging
 import os
 import unittest
 import uuid
+
+
+logger = logging.getLogger(__name__)
+logging.disable(logging.NOTSET)
+logger.setLevel(os.environ.get('LOGLEVEL', 'WARNING').upper())
 
 
 __all__ = [
@@ -139,11 +145,11 @@ class LemonTestResult(unittest.TextTestResult):
 class LemonTestRunner(unittest.TextTestRunner):
     resultclass = LemonTestResult
 
-    def __init__(self, repo=None, to_branch=None, from_branch=None, **kwargs):
+    def __init__(self, repo=None, to_branch=None, from_branch=None, original_from_branch=None, **kwargs):
         self.repo = repo
         self.to_branch = to_branch
         self.from_branch = from_branch
-        self.original_from_branch = from_branch
+        self.original_from_branch = original_from_branch
 
         # FIXME: should respect --top-level-directory
         # Change directory so that git path's match test runner's path
@@ -151,30 +157,36 @@ class LemonTestRunner(unittest.TextTestRunner):
 
         super(LemonTestRunner, self).__init__(**kwargs)
 
-    def run(self, suite):
-        self.stream.writeln('Running Lemon test')
-        self.stream.writeln('-' * 70)
+    @staticmethod
+    def merge_and_checkout(repo, from_branch, to_branch):
+        """
+        Merge these branches together and checkout the resulting branch
+        """
+        to_commit = repo.commit(to_branch)
 
-        to_commit = self.repo.commit(self.to_branch)
-
-        # Step 0. create "from"^
         # We need to merge the "to" branch into the "from" branch to ensure
         # the diff works properly and scopes the correct tests
-        self.repo.git.checkout(self.from_branch)
-        new_branch = self.repo.create_head(str(uuid.uuid4()), self.from_branch)
+        repo.git.checkout(from_branch)
+        new_branch = repo.create_head(str(uuid.uuid4()), from_branch)
         new_branch.checkout()
 
         # merge "to" into "from"^
-        merge_base = self.repo.merge_base(new_branch, to_commit)
-        self.repo.index.merge_tree(to_commit, base=merge_base)
-        from_commit = self.repo.index.commit(
+        merge_base = repo.merge_base(new_branch, to_commit)
+        repo.index.merge_tree(to_commit, base=merge_base)
+        from_commit = repo.index.commit(
             "Merge",
             parent_commits=(new_branch.commit, to_commit))
-        self.repo.git.checkout(from_commit)
+        repo.git.checkout(from_commit)
+
         # For some reason there's still some dirty files
-        self.repo.head.reset(index=True, working_tree=True)
+        repo.head.reset(index=True, working_tree=True)
+
         # Use this as our NEW "from" branch
-        self.from_branch = str(from_commit)
+        return str(from_commit)
+
+    def run(self, suite):
+        self.stream.writeln('Running Lemon test')
+        self.stream.writeln('-' * 70)
 
         # Step 1. relevant tests
         test_paths = suite2paths(suite)

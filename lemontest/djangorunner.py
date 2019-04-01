@@ -20,12 +20,19 @@ class DjangoLemonTestRunner(DiscoverRunner):
             self.repo = git.Repo(os.path.join(repo_path, '..'))
 
         # Checkout the branch so that the tests are picked up
+        # TODO: should checkout merged branch
         self.repo.git.checkout(self.from_branch)
+        self.repo.head.reset(index=True, working_tree=True)
+
+        branch = lemontest.LemonTestRunner.merge_and_checkout(
+            self.repo, from_branch, to_branch)
 
         self.test_runner = functools.partial(lemontest.LemonTestRunner,
                                              repo=self.repo,
-                                             from_branch=self.from_branch,
-                                             to_branch=self.to_branch)
+                                             from_branch=branch,
+                                             to_branch=self.to_branch,
+                                             original_from_branch=self.from_branch)
+
         super(DjangoLemonTestRunner, self).__init__(*args, **kwargs)
 
     @classmethod
