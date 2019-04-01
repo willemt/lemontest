@@ -192,6 +192,9 @@ class LemonTestRunner(unittest.TextTestRunner):
         test_paths = suite2paths(suite)
         self.expected_tests = get_changed_tests(
             self.repo, self.from_branch, self.to_branch, test_paths)
+        if self.verbosity >= 3:
+            print('Tests detected in paths:\n  {}'.format('\n  '.join(sorted(test_paths))))
+            print('Expected tests:\n  {}'.format('\n  '.join(sorted(self.expected_tests))))
 
         # Step 2. get business logic files
         paths = paths_that_changed(self.repo, self.from_branch, self.to_branch)
